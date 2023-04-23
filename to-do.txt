@@ -1,0 +1,1 @@
+1. Να φτιάξω στο τέλος τα τελικά environment.yml και environment-jupyter-notebook.yml και να ανανεώσω το όνομα του virtual environment στην αναφορά και τις κύριες βιβλιοθήκες

@@ -1,0 +1,122 @@
+%! TeX program = lualatex
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[nil]{babel}
+\usepackage{unicode-math}
+\usepackage[svgnames]{xcolor}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{parskip}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+
+\lstset{style=mystyle}
+
+
+
+\babelprovide[import=el, main, onchar=ids fonts]{greek} % can also do import=el-polyton
+\babelprovide[import, onchar=ids fonts]{english}
+
+\babelfont{rm}
+          [Language=Default]{Liberation Sans}
+\babelfont[english]{rm}
+          [Language=Default]{Liberation Sans}
+\babelfont{sf}
+          [Language=Default]{Liberation Sans}
+\babelfont{tt}
+          [Language=Default]{Liberation Sans}
+
+
+\setlength{\emergencystretch}{3em}
+
+%Enter Title Here
+\title{Εξόρυξη Δεδομένων και Αλγόριθμοι Μάθησης\\Εργαστηριακή Άσκηση 2022-2023}
+\author{Γρηγόρης Καπαδούκας (ΑΜ: 1072484)\\Λένος Χρίστου (ΑΜ: 1063014)}
+
+\begin{document}
+
+\maketitle
+
+%Insert Body Here
+\section{Αναλυτική Καταγραφή του Περιβάλλοντος Υλοποίησης}
+
+\subsection{Καταγραφή Βιβλιοθηκών που Χρησιμοποιήθηκαν}
+Για να υλοποιήσουμε την εργασία χρησιμοποιήσαμε γλώσσα προγραμματισμού Python, όπως ζητείται στην εκφώνηση, με τις εξής κύριες βιβλιοθήκες:
+
+\begin{itemize}
+    \item Matplotlib
+    \item Numpy
+    \item Pandas
+    \item Scipy
+    \item Seaborn
+    \item Scikit-learn
+    \item Jupytext (για τη προαιρετική χρήση Jupyter Notebook)
+\end{itemize}
+
+\subsection{Αναλυτικά Βήματα για την Δημιουργία Πανομοιότυπου Περιβάλλοντος Υλοποίησης}
+Παρακάτω δίνουμε αναλυτικά βήματα για την εγκατάσταση των βιβλιοθηκών σε ένα Python virtual environment, έτσι ώστε το περιβάλλον υλοποίησης να είναι πανομοιότυπο με αυτό που χρησιμοποιήσαμε εμείς:
+
+\begin{enumerate}
+    \item Εγκατάσταση του Miniconda μέσω του installer στη σελίδα:
+
+        \textcolor{blue}{\href{https://docs.conda.io/en/latest/miniconda.html}{https://docs.conda.io/en/latest/miniconda.html}}
+
+         Το Miniconda είναι μια δωρεάν μινιμαλιστική πλατφόρμα με cross-platform υποστήριξη που περιέχει το εργαλείο conda, με σκοπό την εύκολη δημιουργία και διαχείριση των Python virtual environments.
+
+         Τα virtual environments αποτελούν ένα "απομονωμένο χώρο" όπου μπορούμε να εγκαταστήσουμε και να χρησιμοποιήσουμε κάποια συγκεκριμένη έκδοση της Python και βιβλιοθήκες της, χωρίς να επηρεάσουμε τυχόν εγκατάσταση της Python που βρίσκεται ήδη στο σύστημα. 
+
+         Εναλλακτική επιλογή που μπορεί να χρησιμοποιηθεί στη θέση του Miniconda είναι το Anaconda. Το Miniconda αναφέρεται επειδή το προτιμήσαμε εμείς στην χρήση μας.
+
+     \item Δημιουργία του conda virtual environment με αυτόματη εγκατάσταση των βιβλιοθηκών που επιθυμούμε μέσω της εκτέλεση της εξής εντολής στον φάκελο της εργασίας σε τερματικό (ή command prompt αντίστοιχα σε πλατφόρμα Windows):
+
+         \begin{lstlisting}[language=Bash]
+conda env create -f environment.yml\end{lstlisting}
+
+         Ή άμα επιθυμείται εγκατάσταση του Jupyter Notebook ταυτόχρονα, μέσω της εντολής:
+
+         \begin{lstlisting}[language=Bash]
+conda env create -f environment-jupyter-notebook.yml\end{lstlisting}
+     \item Η εγκατάσταση των βιβλιοθηκών στο virtual environment έχει ολοκληρωθεί, οπότε τώρα θα φορτώσουμε το environment με την εξής εντολή:
+         \begin{lstlisting}[language=Bash]
+conda activate tf\end{lstlisting}
+    \item Τώρα πλέον είμαστε έτοιμοι και μπορούμε να εκτελέσουμε τον κώδικα απευθείας στο τερματικό ή μέσω του Jupyter Notebook:
+
+        Για να εκτελέσουμε απευθείας τον κώδικα στο environment εκτελούμε απλά την εξής εντολή:
+         \begin{lstlisting}[language=Bash]
+python <filename>.py\end{lstlisting}
+
+        Για να εκτελέσουμε το Jupyter Notebook στο environment εκτελούμε την εξής εντολή στο τερματικό:
+         \begin{lstlisting}[language=Bash]
+jupyter notebook\end{lstlisting}
+
+\end{enumerate}
+
+\end{document}
