@@ -15,7 +15,6 @@
 # +
 import pandas as pd
 import matplotlib.pyplot as plt
-import pandas as pd
 # read the CSV file into a pandas dataframe
 #df = pd.read_csv('data.csv')
 
@@ -23,6 +22,7 @@ import pandas as pd
 #df.to_csv(('data.csv'), index=True)
 
 df = pd.read_csv('data.csv')
+
 df["Date"] = pd.to_datetime(df["Date"])
 print(df.describe().round(2))
 for col in df.columns:
