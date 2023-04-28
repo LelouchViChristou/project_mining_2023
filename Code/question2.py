@@ -15,6 +15,13 @@
 # +
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+from scipy.stats import boxcox, yeojohnson
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+import scipy.cluster.hierarchy as sch
+from sklearn.cluster import AgglomerativeClustering
+
 # read the CSV file into a pandas dataframe
 #df = pd.read_csv('data.csv')
 
@@ -23,78 +30,42 @@ import matplotlib.pyplot as plt
 
 df = pd.read_csv('data.csv')
 
-df["Date"] = pd.to_datetime(df["Date"])
-print(df.describe().round(2))
-for col in df.columns:
-    plt.hist(df[col], bins=20)
-    plt.title(col)
-    plt.show()
-print(df.head(1))
-
-# +
-import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-correlation_matrix = df.corr(numeric_only=True)
-print(correlation_matrix.to_string())
-plt.figure(figsize=(12, 9))
-sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', vmin=-1, vmax=1)
-plt.title('Correlation Matrix Heatmap')
-plt.show()
-
-
-# +
-
-import numpy as np
-from scipy.stats import boxcox, yeojohnson
-import pandas as pd
-import matplotlib.pyplot as plt
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
-import scipy.cluster.hierarchy as sch
-from sklearn.cluster import AgglomerativeClustering
-
-df = pd.read_csv('data.csv')
-df["Date"] = pd.to_datetime(df["Date"])
-
-df = df.groupby('Entity',group_keys=False).apply(lambda x: x.fillna(method='ffill'))
-df = df.groupby('Entity',group_keys=False).apply(lambda x: x.fillna(method='bfill'))
-df = df[df.Cases > 0]
+#df["Date"] = pd.to_datetime(df["Date"])
+df = df.groupby('Entity', group_keys=False).apply(lambda x: x.fillna(method='ffill'))
+df = df.groupby('Entity', group_keys=False).apply(lambda x: x.fillna(method='bfill'))
+#df = df[df.Cases > 0]
 
 
 df.drop_duplicates(inplace=True)
 
-df.dropna(inplace=True)
+#df.dropna(inplace=True)
 
 # Group the data by entity
 grouped_data = df.groupby('Entity')
 
 # Compute the new cases and add a new column to the DataFrame
-df['New Cases'] = grouped_data['Cases'].diff()
-#df['New Deaths'] = grouped_data['Deaths'].diff()
+#df['New Deaths'] = grouped_data['Deaths'].di:f()
+
+df['Positive Ratio'] = (grouped_data['Cases'].diff() / df['Daily tests']) * 100
+
+df['Death Ratio'] = (df['Deaths'].diff() / df['Cases'].diff()) * 100
+df['Death Ratio'] = df['Death Ratio'].fillna(0)
+
+df["Tested Ratio"]=(df['Daily tests'] / df['Population']) * 100
 df.fillna(value=0, inplace=True)
-
-df['Positive Ratio'] = (df['New Cases'] / df['Daily tests']) * 100
-
-df['Death Ratio'] = (df['Deaths'] / df['Cases']) * 100
-
-df["Tested ratio"]=(df['Daily tests'] / df['Population']) * 100
 
 #df['Deaths per Capita'] = (df['Deaths'] / df['Population'])
 
 # Group the data by entity
 grouped_data = df.groupby('Entity')
 
-# Compute the average positive ratio, death ratio, tested ratio, and deaths per capita
-# and keep the latest values for all other fields
+# Compute the average positive ratio, death ratio, tested ratio, and keep the latest values for all other fields
 result_data = grouped_data.agg({
     'Continent': 'last',
     'Latitude': 'last',
     'Longitude': 'last',
-    'Average temperature per year': 'mean',
-    'Hospital beds per 1000 people': 'mean',
+    'Average temperature per year': 'last',
+    'Hospital beds per 1000 people': 'last',
     'GDP/Capita': 'last',
     'Population': 'last',
     'Median age': 'last',
@@ -103,11 +74,10 @@ result_data = grouped_data.agg({
     'Deaths': 'last',
     'Positive Ratio': 'median',
     'Death Ratio': 'median',
-    'Tested ratio': 'median'
-    #'Deaths per Capita': 'last'
+    'Tested Ratio': 'median'
+    # 'Deaths per Capita': 'last'
 })
 
-#print(result_data[result_data.index.str.startswith('India')].to_string())
 # Get the unique values in the continent column
 continent_values = result_data['Continent'].unique()
 
@@ -116,32 +86,31 @@ continent_map = {continent_values[i]: i+1 for i in range(len(continent_values))}
 
 # Replace the unique values with the corresponding numbers
 result_data['Continent'] = result_data['Continent'].replace(continent_map)
+result_data.pop('Date')
 
 features=['Continent', 'Latitude', 'Longitude', 'Average temperature per year',
        'Hospital beds per 1000 people', 'GDP/Capita', 'Population',
        'Median age','Cases', 'Deaths', 'Positive Ratio',
-       'Death Ratio', 'Tested ratio' 
-        #'Deaths per Capita'
+       'Death Ratio', 'Tested Ratio' 
+        # 'Deaths per Capita'
         ]
 
 result_data[features] = result_data[features].astype(float)
 
 scaler = StandardScaler()
-
 normalized_data = result_data.copy()
 normalized_data[features] = scaler.fit_transform(result_data[features])
-scaled_features=normalized_data[features]
 
 # n_clusters=10
 # # Cluster the data using the best k value
 # kmeans = KMeans(n_clusters=n_clusters, random_state=42,n_init="auto")
-# kmeans.fit(scaled_features)
-# scaled_features['Cluster'] = kmeans.labels_
+# kmeans.fit(normalized_data)
+# normalized_data['Cluster'] = kmeans.labels_
 # result_data['Cluster'] = kmeans.labels_
 
 # # Plot the clusters
 # labels = kmeans.labels_
-# scatter = plt.scatter(scaled_features['Death Ratio'], scaled_features['GDP/Capita'], c=labels)
+# scatter = plt.scatter(normalized_data['Death Ratio'], normalized_data['GDP/Capita'], c=labels)
 
 # plt.title('Clusters')
 # plt.xlabel("Death Ratio")
@@ -159,16 +128,19 @@ scaled_features=normalized_data[features]
 
 
 # Create a dendrogram to help determine the optimal number of clusters
-dendrogram = sch.dendrogram(sch.linkage(scaled_features, method='average'))
+#dendrogram = sch.dendrogram(sch.linkage(normalized_data, method='average'))
+dendrogram = sch.dendrogram(sch.linkage(normalized_data, method='ward'))
 plt.title('Dendrogram')
 plt.xlabel('Entities')
 plt.ylabel('Euclidean distances')
+plt.axhline(y = 17, color = 'r', linestyle = '-')
 plt.show()
 
-distance_threshold = 7.0
-cluster = AgglomerativeClustering(n_clusters=None, metric='euclidean', linkage='ward', distance_threshold=distance_threshold)
-cluster.fit_predict(scaled_features)
-scaled_features['Cluster'] = cluster.labels_
+#distance_threshold = 7.0
+#cluster = AgglomerativeClustering(n_clusters=None, metric='euclidean', linkage='ward', distance_threshold=distance_threshold)
+cluster = AgglomerativeClustering(n_clusters=3, metric='euclidean', linkage='ward')
+cluster.fit_predict(normalized_data)
+normalized_data['Cluster'] = cluster.labels_
 result_data['Cluster'] = cluster.labels_
 
 
@@ -177,7 +149,7 @@ result_data['Cluster'] = cluster.labels_
 
 # Plot the clusters
 labels = cluster.labels_
-scatter = plt.scatter(scaled_features['Death Ratio'], scaled_features['GDP/Capita'], c=labels)
+scatter = plt.scatter(normalized_data['Death Ratio'], normalized_data['GDP/Capita'], c=labels)
 
 plt.title('Clusters')
 plt.xlabel("Death Ratio")
@@ -193,7 +165,7 @@ cluster_entity_names_df = pd.DataFrame({'Entity Names': cluster_entity_names})
 print(cluster_entity_names_df.to_string())
 
 # Compute cluster statistics
-cluster_stats = scaled_features.groupby('Cluster').agg({
+cluster_stats = normalized_data.groupby('Cluster').agg({
     'Continent': lambda x: x.mode().iloc[0],
     'Latitude': ['mean', 'std'],
     'Longitude': ['mean', 'std'],
@@ -206,7 +178,7 @@ cluster_stats = scaled_features.groupby('Cluster').agg({
     'Deaths': ['mean', 'std'],
     'Positive Ratio': ['mean', 'std'],
     'Death Ratio': ['mean', 'std'],
-    'Tested ratio': ['mean', 'std']
+    'Tested Ratio': ['mean', 'std']
     #'Deaths per Capita': ['mean', 'std']
 })
 
@@ -225,36 +197,5 @@ for cluster_id in range(len(cluster_stats)):
     print(f"Deaths: mean = {cluster_stats.loc[cluster_id, ('Deaths', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Deaths', 'std')]:.2f}")#na kanononikopiithi me to population
     print(f"Positive Ratio: mean = {cluster_stats.loc[cluster_id, ('Positive Ratio', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Positive Ratio','std')]:.2f}")
     print(f"Death Ratio: mean = {cluster_stats.loc[cluster_id, ('Death Ratio', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Death Ratio', 'std')]:.2f}")
-    print(f"Tested ratio: mean = {cluster_stats.loc[cluster_id, ('Tested ratio', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Tested ratio', 'std')]:.2f}")
+    print(f"Tested Ratio: mean = {cluster_stats.loc[cluster_id, ('Tested Ratio', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Tested Ratio', 'std')]:.2f}")
     #print(f"Deaths per Capita: mean = {cluster_stats.loc[cluster_id, ('Deaths per Capita', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Deaths per Capita', 'std')]:.2f}")#na kanononikopiithi me to population
-
-
-
-# +
-import numpy as np
-import pandas as pd                
-from scipy.stats import boxcox, yeojohnson
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
-df = pd.read_csv('data.csv')
-
-greece_df = df.loc[df['Entity'] == 'Greece', ['Date', 'Cases', 'Deaths', 'Daily tests']].copy()
-greece_df.dropna(inplace=True)
-greece_df["Date"] = pd.to_datetime(greece_df["Date"])
-greece_df['New Cases'] = greece_df['Cases'].diff()
-greece_df = greece_df.fillna(0)
-greece_df['Positive Ratio'] = (greece_df['New Cases'] / greece_df['Daily tests']) * 100
-greece_df['Death Ratio'] = (greece_df['Deaths'] / greece_df['Cases']) * 100
-greece_df["Tested ratio"] = (greece_df['Daily tests'] / 10760421.0) * 100
-
-# create a MinMax scaler object for all columns
-scaler = StandardScaler()
-
-# select all columns to normalize
-columns_to_normalize = ['Daily tests','Cases', 'Deaths','New Cases','Positive Ratio','Death Ratio',"Tested ratio"]
-
-# fit and transform all columns with the scaler object
-greece_df[columns_to_normalize] = scaler.fit_transform(greece_df[columns_to_normalize])
-print(greece_df.head(20).to_string())
-
-greece_df.to_csv('preprocessed_numeric_data.csv', index=False)
-
