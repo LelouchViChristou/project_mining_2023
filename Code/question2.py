@@ -48,7 +48,7 @@ grouped_data = df.groupby('Entity')
 
 df['Positive Ratio'] = (grouped_data['Cases'].diff() / df['Daily tests']) * 100
 
-df['Death Ratio'] = (df['Deaths'].diff() / df['Cases'].diff()) * 100
+df['Death Ratio'] = (df['Deaths'] / df['Cases']) * 100
 df['Death Ratio'] = df['Death Ratio'].fillna(0)
 
 df["Tested Ratio"]=(df['Daily tests'] / df['Population']) * 100
@@ -91,7 +91,7 @@ result_data.pop('Date')
 features=['Continent', 'Latitude', 'Longitude', 'Average temperature per year',
        'Hospital beds per 1000 people', 'GDP/Capita', 'Population',
        'Median age','Cases', 'Deaths', 'Positive Ratio',
-       'Death Ratio', 'Tested Ratio' 
+       'Death Ratio', 'Tested Ratio'
         # 'Deaths per Capita'
         ]
 
@@ -136,9 +136,9 @@ plt.ylabel('Euclidean distances')
 plt.axhline(y = 17, color = 'r', linestyle = '-')
 plt.show()
 
-#distance_threshold = 7.0
-#cluster = AgglomerativeClustering(n_clusters=None, metric='euclidean', linkage='ward', distance_threshold=distance_threshold)
-cluster = AgglomerativeClustering(n_clusters=3, metric='euclidean', linkage='ward')
+distance_threshold = 7.0
+cluster = AgglomerativeClustering(n_clusters=None, metric='euclidean', linkage='ward', distance_threshold=distance_threshold)
+#cluster = AgglomerativeClustering(n_clusters=3, metric='euclidean', linkage='ward')
 cluster.fit_predict(normalized_data)
 normalized_data['Cluster'] = cluster.labels_
 result_data['Cluster'] = cluster.labels_
@@ -166,7 +166,8 @@ print(cluster_entity_names_df.to_string())
 
 # Compute cluster statistics
 cluster_stats = normalized_data.groupby('Cluster').agg({
-    'Continent': lambda x: x.mode().iloc[0],
+    #'Continent': lambda x: x.mode().iloc[0],
+    'Continent': ['mean', 'std'],
     'Latitude': ['mean', 'std'],
     'Longitude': ['mean', 'std'],
     'Average temperature per year': ['mean', 'std'],
@@ -185,7 +186,8 @@ cluster_stats = normalized_data.groupby('Cluster').agg({
 # Print cluster statistics
 for cluster_id in range(len(cluster_stats)):
     print(f"\nCluster {cluster_id+1} statistics:")
-    print(f"Continent: {cluster_stats.loc[cluster_id, ('Continent', '<lambda>')]}")
+    #print(f"Continent: {cluster_stats.loc[cluster_id, ('Continent', '<lambda>')]}")
+    print(f"Continent: mean = {cluster_stats.loc[cluster_id, ('Continent', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Continent', 'std')]:.2f}")
     print(f"Latitude: mean = {cluster_stats.loc[cluster_id, ('Latitude', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Latitude', 'std')]:.2f}")
     print(f"Longitude: mean = {cluster_stats.loc[cluster_id, ('Longitude', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Longitude', 'std')]:.2f}")
     print(f"Average temperature per year: mean = {cluster_stats.loc[cluster_id, ('Average temperature per year', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Average temperature per year', 'std')]:.2f}")

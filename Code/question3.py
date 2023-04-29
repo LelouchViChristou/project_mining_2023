@@ -1,6 +1,6 @@
 # +
 import numpy as np
-import pandas as pd                
+import pandas as pd
 from scipy.stats import boxcox, yeojohnson
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 df = pd.read_csv('data.csv')
