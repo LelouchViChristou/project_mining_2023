@@ -7,23 +7,25 @@ from tensorflow.keras import layers
 import numpy as np
 import pandas as pd
 from scipy.stats import boxcox, yeojohnson
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 
 df = pd.read_csv('data.csv')
 
 greece_df = df.loc[df['Entity'] == 'Greece', ['Date', 'Cases', 'Daily tests']].copy()
 greece_df = greece_df.reset_index(drop=True)
+greece_df = greece_df.drop(greece_df.index[range(0,50)])
+greece_df = greece_df.reset_index(drop=True)
+
+greece_df['Positive Ratio'] = (greece_df['Cases'].diff() / greece_df['Daily tests']) * 100
+greece_df.iloc[314,3] = float("NaN") #Outlier
 greece_df = greece_df.apply(lambda x: x.fillna(method='ffill'))
 greece_df = greece_df.apply(lambda x: x.fillna(method='bfill'))
 greece_df.drop_duplicates(inplace=True)
-
-greece_df['Positive Ratio'] = (greece_df['Cases'].diff() / greece_df['Daily tests']) * 100
-greece_df.iloc[364,3] = 0 #Outlier
-greece_df = greece_df.fillna(0)
+#greece_df = greece_df.fillna(0)
 train_data = greece_df.iloc[:,3:4].values
 
 # create a MinMax scaler object for all columns
-scaler = StandardScaler()
+scaler = MinMaxScaler(feature_range=(0,1))
 
 # select all columns to normalize
 #columns_to_normalize = ['Daily tests','Cases','Deaths','Positive Ratio','Death Ratio',"Tested ratio"]
@@ -34,6 +36,11 @@ train_data = scaler.fit_transform(train_data)
 
 #input_greece_df = greece_df.copy()
 #output_greece_df = input_greece_df.pop("Positive Ratio")
+
+pd.options.display.max_columns = 500 #Changes the number of columns diplayed (default is 20)
+pd.options.display.max_rows = 500 #Changes the number of rows diplayed (default is 60)
+pd.options.display.max_colwidth = 500 #Changes the number of characters in a cell so that the contents don't get truncated 
+greece_df
 
 # +
 x_train = []
@@ -75,7 +82,7 @@ model = keras.Sequential(
 model.compile(
     loss = keras.losses.MeanSquaredError(),
     optimizer=keras.optimizers.Adam(learning_rate = 0.001),
-    metrics="cosine_similarity"
+    metrics="mean_absolute_percentage_error"
 )
 
 #callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss')
@@ -87,15 +94,21 @@ import matplotlib.pyplot as plt
 plt.plot(hist.history['loss'])
 plt.plot(hist.history['val_loss'])
 plt.title('LSTM (RNN) Model Loss:')
-plt.legend(['Train MSE Loss', 'Validation MSE Loss'], loc='best')
+plt.legend(['Train Set MSE Loss', 'Test Set MSE Loss'], loc='best')
 plt.ylabel('MSE Loss')
 plt.xlabel('Epoch')
 plt.show()
 
-plt.plot(hist.history['cosine_similarity'])
-plt.plot(hist.history['val_cosine_similarity'])
-plt.title('LSTM (RNN) Model Similarity:')
-plt.legend(['Train Cosine Similarity', 'Validation Cosine Similarity'], loc='best')
+plt.plot(hist.history['mean_absolute_percentage_error'])
+plt.title('LSTM (RNN) Model Train Set Similarity:')
+plt.legend(['Train Set Mean Absolute Percentage Error'], loc='best')
+plt.ylabel('Cosine Similarity')
+plt.xlabel('Epoch')
+plt.show()
+
+plt.plot(hist.history['val_mean_absolute_percentage_error'])
+plt.title('LSTM (RNN) Model Test Set Similarity:')
+plt.legend(['Test Set Mean Test Percentage Error'], loc='best')
 plt.ylabel('Cosine Similarity')
 plt.xlabel('Epoch')
 plt.show()
@@ -109,6 +122,27 @@ real_price = scaler.inverse_transform(y_test)
 plt.plot(real_price, color = 'blue', label = 'Actual Positive Ratio')
 plt.plot(predicted_price, color = 'red', label = 'Predicted Positive Ratio')
 plt.title('Actual vs Predicted Positive Ratio')
+plt.xlabel('Days after 01/01/2021')
+plt.ylabel('Positive Ratio')
+plt.legend()
+plt.show()
+
+plt.plot(scaler.inverse_transform(train_data), color = 'blue', label = 'Actual Positive Ratio')
+plt.title('Actual Positive Ratio')
+plt.xlabel('Days after 01/01/2021')
+plt.ylabel('Positive Ratio')
+plt.legend()
+plt.show()
+
+# +
+y_pred = model.predict(x_train)
+predicted_price = scaler.inverse_transform(y_pred)
+y_train = np.reshape(y_train,(y_train.size,1))
+real_price = scaler.inverse_transform(y_train)
+
+plt.plot(real_price, color = 'blue', label = 'Actual Positive Ratio')
+plt.plot(predicted_price, color = 'red', label = 'Predicted Positive Ratio')
+plt.title('Actual vs Predicted Positive Ratio On Train Set')
 plt.xlabel('Days after 01/01/2021')
 plt.ylabel('Positive Ratio')
 plt.legend()
