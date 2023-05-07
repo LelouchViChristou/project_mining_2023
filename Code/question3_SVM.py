@@ -1,148 +1,98 @@
 # +
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import layers
 import numpy as np
 import pandas as pd
 from scipy.stats import boxcox, yeojohnson
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.svm import SVR
 
 df = pd.read_csv('data.csv')
 
-greece_df = df.loc[df['Entity'] == 'Greece', ['Date', 'Cases', 'Daily tests']].copy()
+greece_df = df.loc[df['Entity'] == 'Greece', ['Date', 'Cases', 'Deaths', 'Daily tests']].copy()
 greece_df = greece_df.reset_index(drop=True)
-greece_df = greece_df.drop(greece_df.index[range(0,50)])
+greece_df = greece_df.drop(greece_df.index[range(0,60)])
 greece_df = greece_df.reset_index(drop=True)
 
+greece_df['New Cases'] = greece_df['Cases'].diff()
 greece_df['Positive Ratio'] = (greece_df['Cases'].diff() / greece_df['Daily tests']) * 100
-greece_df.iloc[314,3] = float("NaN") #Outlier
+greece_df['Death Ratio'] = (greece_df['Deaths'] / greece_df['Cases']) * 100
+greece_df["Tested Ratio"] = (greece_df['Daily tests'] / 10760421.0) * 100
+greece_df.iloc[304,5] = float("NaN") #Outlier
 greece_df = greece_df.apply(lambda x: x.fillna(method='ffill'))
 greece_df = greece_df.apply(lambda x: x.fillna(method='bfill'))
 greece_df.drop_duplicates(inplace=True)
 #greece_df = greece_df.fillna(0)
-train_data = greece_df.iloc[:,3:4].values
-
-# create a MinMax scaler object for all columns
-scaler = MinMaxScaler(feature_range=(0,1))
 
 # select all columns to normalize
 #columns_to_normalize = ['Daily tests','Cases','Deaths','Positive Ratio','Death Ratio',"Tested ratio"]
 
 # fit and transform all columns with the scaler object
-train_data = scaler.fit_transform(train_data)
 #print(greece_df.head(20).to_string())
 
 #input_greece_df = greece_df.copy()
 #output_greece_df = input_greece_df.pop("Positive Ratio")
 
-pd.options.display.max_columns = 500 #Changes the number of columns diplayed (default is 20)
-pd.options.display.max_rows = 500 #Changes the number of rows diplayed (default is 60)
-pd.options.display.max_colwidth = 500 #Changes the number of characters in a cell so that the contents don't get truncated 
+#pd.options.display.max_columns = 500 #Changes the number of columns diplayed (default is 20)
+#pd.options.display.max_rows = 500 #Changes the number of rows diplayed (default is 60)
+#pd.options.display.max_colwidth = 500 #Changes the number of characters in a cell so that the contents don't get truncated 
 greece_df
 
 # +
-x_train = []
-y_train = []
-x_test = []
-y_test = []
+x = greece_df[['Cases', 'Deaths', 'New Cases', 'Death Ratio', 'Tested Ratio']]
+y = greece_df[['Positive Ratio']]
+x = x.tail(-3)
+y = y.head(-3)
+x = x.reset_index(drop=True)
+y = y.reset_index(drop=True)
 
-for i in range(6, greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0]):
-   x_train.append(train_data[i-6:i,0]) 
-   y_train.append(train_data[i+3,0])
-    
-for i in range(greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0], train_data.size - 3):
-   x_test.append(train_data[i-6:i,0]) 
-   y_test.append(train_data[i+3,0])
+# create a MinMax scaler object for all columns
+x_scaler = MinMaxScaler(feature_range=(0,1))
+y_scaler = MinMaxScaler(feature_range=(0,1))
+x[['Cases', 'Deaths','New Cases','Death Ratio','Tested Ratio']] = x_scaler.fit_transform(x[['Cases', 'Deaths','New Cases','Death Ratio','Tested Ratio']])
+y[['Positive Ratio']] = y_scaler.fit_transform(y[['Positive Ratio']])
 
-x_train,y_train = np.array(x_train),np.array(y_train)
-x_train = np.reshape(x_train,(x_train.shape[0],x_train.shape[1],1))
 
-x_test,y_test = np.array(x_test),np.array(y_test)
-x_test = np.reshape(x_test,(x_test.shape[0],x_test.shape[1],1))
+x_train = x.iloc[:greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0]]
+y_train = y.iloc[:greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0]]
+x_test = x.iloc[greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0]-3:]
+y_test = y.iloc[greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0]-3:]
 
 # +
-from keras.layers import Dense,LSTM,Dropout
-
 # Define the model
 
-model = keras.Sequential(
-    [
-        layers.LSTM(300, return_sequences=True, input_shape=(x_train.shape[1],1)),
-        layers.Dropout(0.2),
-        layers.LSTM(300, return_sequences=True),
-        layers.Dropout(0.2),
-        layers.LSTM(300, return_sequences=False),
-        layers.Dropout(0.2),
-        layers.Dense(1)
-    ]
-)
+regressor = SVR(kernel='rbf')
+regressor.fit(x_train,y_train.values.ravel())
 
-model.compile(
-    loss = keras.losses.MeanSquaredError(),
-    optimizer=keras.optimizers.Adam(learning_rate = 0.001),
-    metrics="mean_absolute_percentage_error"
-)
+# +
+from statsmodels.tools.eval_measures import mse
+y_pred = regressor.predict(x_test)
+y_pred = np.reshape(y_pred,(y_pred.size,1))
+y_pred = y_scaler.inverse_transform(y_pred)
 
-#callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss')
+y_test = y_scaler.inverse_transform(y_test)
 
-hist = model.fit(x_train, y_train, epochs = 100, batch_size = 32, validation_data=(x_test, y_test), verbose=2)
+print(mse(y_pred,y_test))
 
 # +
 import matplotlib.pyplot as plt
-plt.plot(hist.history['loss'])
-plt.plot(hist.history['val_loss'])
-plt.title('LSTM (RNN) Model Loss:')
-plt.legend(['Train Set MSE Loss', 'Test Set MSE Loss'], loc='best')
-plt.ylabel('MSE Loss')
-plt.xlabel('Epoch')
-plt.show()
 
-plt.plot(hist.history['mean_absolute_percentage_error'])
-plt.title('LSTM (RNN) Model Train Set Similarity:')
-plt.legend(['Train Set Mean Absolute Percentage Error'], loc='best')
-plt.ylabel('Cosine Similarity')
-plt.xlabel('Epoch')
-plt.show()
-
-plt.plot(hist.history['val_mean_absolute_percentage_error'])
-plt.title('LSTM (RNN) Model Test Set Similarity:')
-plt.legend(['Test Set Mean Test Percentage Error'], loc='best')
-plt.ylabel('Cosine Similarity')
-plt.xlabel('Epoch')
-plt.show()
-
-# +
-y_pred = model.predict(x_test)
-predicted_price = scaler.inverse_transform(y_pred)
-y_test = np.reshape(y_test,(y_test.size,1))
-real_price = scaler.inverse_transform(y_test)
-
-plt.plot(real_price, color = 'blue', label = 'Actual Positive Ratio')
-plt.plot(predicted_price, color = 'red', label = 'Predicted Positive Ratio')
-plt.title('Actual vs Predicted Positive Ratio')
-plt.xlabel('Days after 01/01/2021')
-plt.ylabel('Positive Ratio')
-plt.legend()
-plt.show()
-
-plt.plot(scaler.inverse_transform(train_data), color = 'blue', label = 'Actual Positive Ratio')
-plt.title('Actual Positive Ratio')
+plt.plot(y_test, color = 'blue', label = 'Actual Positive Ratio')
+plt.plot(y_pred, color = 'red', label = 'Predicted Positive Ratio')
+plt.title('SVR (RBF) Model Loss:')
 plt.xlabel('Days after 01/01/2021')
 plt.ylabel('Positive Ratio')
 plt.legend()
 plt.show()
 
 # +
-y_pred = model.predict(x_train)
-predicted_price = scaler.inverse_transform(y_pred)
-y_train = np.reshape(y_train,(y_train.size,1))
-real_price = scaler.inverse_transform(y_train)
+y_pred = regressor.predict(x)
+y_pred = np.reshape(y_pred,(y_pred.size,1))
+y_pred = y_scaler.inverse_transform(y_pred)
+y_plot = np.reshape(y,(y.size,1))
+y_plot = y_scaler.inverse_transform(y_plot)
 
-plt.plot(real_price, color = 'blue', label = 'Actual Positive Ratio')
-plt.plot(predicted_price, color = 'red', label = 'Predicted Positive Ratio')
-plt.title('Actual vs Predicted Positive Ratio On Train Set')
+plt.plot(y_plot, color = 'blue', label = 'Actual Positive Ratio')
+plt.plot(y_pred, color = 'red', label = 'Predicted Positive Ratio')
+plt.title('Actual vs Predicted Positive Ratio On All Data')
 plt.xlabel('Days after 01/01/2021')
 plt.ylabel('Positive Ratio')
 plt.legend()

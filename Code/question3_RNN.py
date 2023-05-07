@@ -13,11 +13,11 @@ df = pd.read_csv('data.csv')
 
 greece_df = df.loc[df['Entity'] == 'Greece', ['Date', 'Cases', 'Daily tests']].copy()
 greece_df = greece_df.reset_index(drop=True)
-greece_df = greece_df.drop(greece_df.index[range(0,50)])
+greece_df = greece_df.drop(greece_df.index[range(0,60)])
 greece_df = greece_df.reset_index(drop=True)
 
 greece_df['Positive Ratio'] = (greece_df['Cases'].diff() / greece_df['Daily tests']) * 100
-greece_df.iloc[314,3] = float("NaN") #Outlier
+greece_df.iloc[304,3] = float("NaN") #Outlier
 greece_df = greece_df.apply(lambda x: x.fillna(method='ffill'))
 greece_df = greece_df.apply(lambda x: x.fillna(method='bfill'))
 greece_df.drop_duplicates(inplace=True)
@@ -37,10 +37,10 @@ train_data = scaler.fit_transform(train_data)
 #input_greece_df = greece_df.copy()
 #output_greece_df = input_greece_df.pop("Positive Ratio")
 
-pd.options.display.max_columns = 500 #Changes the number of columns diplayed (default is 20)
-pd.options.display.max_rows = 500 #Changes the number of rows diplayed (default is 60)
-pd.options.display.max_colwidth = 500 #Changes the number of characters in a cell so that the contents don't get truncated 
-greece_df
+#pd.options.display.max_columns = 500 #Changes the number of columns diplayed (default is 20)
+#pd.options.display.max_rows = 500 #Changes the number of rows diplayed (default is 60)
+#pd.options.display.max_colwidth = 500 #Changes the number of characters in a cell so that the contents don't get truncated 
+#greece_df
 
 # +
 x_train = []
@@ -91,22 +91,22 @@ hist = model.fit(x_train, y_train, epochs = 100, batch_size = 32, validation_dat
 
 # +
 import matplotlib.pyplot as plt
-plt.plot(hist.history['loss'])
-plt.plot(hist.history['val_loss'])
+plt.plot(hist.history['loss'], color='blue')
+plt.plot(hist.history['val_loss'], color='red')
 plt.title('LSTM (RNN) Model Loss:')
 plt.legend(['Train Set MSE Loss', 'Test Set MSE Loss'], loc='best')
 plt.ylabel('MSE Loss')
 plt.xlabel('Epoch')
 plt.show()
 
-plt.plot(hist.history['mean_absolute_percentage_error'])
+plt.plot(hist.history['mean_absolute_percentage_error'], color='blue')
 plt.title('LSTM (RNN) Model Train Set Similarity:')
 plt.legend(['Train Set Mean Absolute Percentage Error'], loc='best')
 plt.ylabel('Cosine Similarity')
 plt.xlabel('Epoch')
 plt.show()
 
-plt.plot(hist.history['val_mean_absolute_percentage_error'])
+plt.plot(hist.history['val_mean_absolute_percentage_error'], color='red')
 plt.title('LSTM (RNN) Model Test Set Similarity:')
 plt.legend(['Test Set Mean Test Percentage Error'], loc='best')
 plt.ylabel('Cosine Similarity')
@@ -115,34 +115,29 @@ plt.show()
 
 # +
 y_pred = model.predict(x_test)
-predicted_price = scaler.inverse_transform(y_pred)
-y_test = np.reshape(y_test,(y_test.size,1))
-real_price = scaler.inverse_transform(y_test)
+y_pred = scaler.inverse_transform(y_pred)
+y_test_plot = np.reshape(y_test,(y_test.size,1))
+y_test_plot = scaler.inverse_transform(y_test_plot)
 
-plt.plot(real_price, color = 'blue', label = 'Actual Positive Ratio')
-plt.plot(predicted_price, color = 'red', label = 'Predicted Positive Ratio')
+plt.plot(y_test_plot, color = 'blue', label = 'Actual Positive Ratio')
+plt.plot(y_pred, color = 'red', label = 'Predicted Positive Ratio')
 plt.title('Actual vs Predicted Positive Ratio')
 plt.xlabel('Days after 01/01/2021')
 plt.ylabel('Positive Ratio')
 plt.legend()
 plt.show()
 
-plt.plot(scaler.inverse_transform(train_data), color = 'blue', label = 'Actual Positive Ratio')
-plt.title('Actual Positive Ratio')
-plt.xlabel('Days after 01/01/2021')
-plt.ylabel('Positive Ratio')
-plt.legend()
-plt.show()
-
 # +
-y_pred = model.predict(x_train)
-predicted_price = scaler.inverse_transform(y_pred)
-y_train = np.reshape(y_train,(y_train.size,1))
-real_price = scaler.inverse_transform(y_train)
+y_pred_2 = model.predict(x_train)
+y_pred_2 = scaler.inverse_transform(y_pred_2)
+y_pred = np.concatenate((y_pred_2, y_pred))
+y_plot = np.concatenate((y_train, y_test))
+y_plot = np.reshape(y_plot,(y_plot.size,1))
+y_plot = scaler.inverse_transform(y_plot)
 
-plt.plot(real_price, color = 'blue', label = 'Actual Positive Ratio')
-plt.plot(predicted_price, color = 'red', label = 'Predicted Positive Ratio')
-plt.title('Actual vs Predicted Positive Ratio On Train Set')
+plt.plot(y_plot, color = 'blue', label = 'Actual Positive Ratio')
+plt.plot(y_pred, color = 'red', label = 'Predicted Positive Ratio')
+plt.title('Actual vs Predicted Positive Ratio On All Data')
 plt.xlabel('Days after 01/01/2021')
 plt.ylabel('Positive Ratio')
 plt.legend()
