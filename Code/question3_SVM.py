@@ -12,11 +12,10 @@ greece_df = greece_df.reset_index(drop=True)
 greece_df = greece_df.drop(greece_df.index[range(0,60)])
 greece_df = greece_df.reset_index(drop=True)
 
-greece_df['New Cases'] = greece_df['Cases'].diff()
 greece_df['Positive Ratio'] = (greece_df['Cases'].diff() / greece_df['Daily tests']) * 100
 greece_df['Death Ratio'] = (greece_df['Deaths'] / greece_df['Cases']) * 100
 greece_df["Tested Ratio"] = (greece_df['Daily tests'] / 10760421.0) * 100
-greece_df.iloc[304,5] = float("NaN") #Outlier
+greece_df.iloc[304,4] = float("NaN") #Outlier
 greece_df = greece_df.apply(lambda x: x.fillna(method='ffill'))
 greece_df = greece_df.apply(lambda x: x.fillna(method='bfill'))
 greece_df.drop_duplicates(inplace=True)
@@ -37,7 +36,7 @@ greece_df.drop_duplicates(inplace=True)
 greece_df
 
 # +
-x = greece_df[['Cases', 'Deaths', 'New Cases', 'Death Ratio', 'Tested Ratio']]
+x = greece_df[['Cases', 'Deaths', 'Death Ratio', 'Tested Ratio']]
 y = greece_df[['Positive Ratio']]
 x = x.tail(-3)
 y = y.head(-3)
@@ -47,7 +46,7 @@ y = y.reset_index(drop=True)
 # create a MinMax scaler object for all columns
 x_scaler = MinMaxScaler(feature_range=(0,1))
 y_scaler = MinMaxScaler(feature_range=(0,1))
-x[['Cases', 'Deaths','New Cases','Death Ratio','Tested Ratio']] = x_scaler.fit_transform(x[['Cases', 'Deaths','New Cases','Death Ratio','Tested Ratio']])
+x[['Cases', 'Deaths','Death Ratio','Tested Ratio']] = x_scaler.fit_transform(x[['Cases', 'Deaths','Death Ratio','Tested Ratio']])
 y[['Positive Ratio']] = y_scaler.fit_transform(y[['Positive Ratio']])
 
 
