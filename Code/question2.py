@@ -165,7 +165,7 @@ cluster_entity_names_df = pd.DataFrame({'Entity Names': cluster_entity_names})
 print(cluster_entity_names_df.to_string())
 
 # Compute cluster statistics
-cluster_stats = normalized_data.groupby('Cluster').agg({
+cluster_stats = result_data.groupby('Cluster').agg({
     #'Continent': lambda x: x.mode().iloc[0],
     'Continent': ['mean', 'std'],
     'Latitude': ['mean', 'std'],

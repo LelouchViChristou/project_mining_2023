@@ -1,3 +1,4 @@
 1. Να φτιάξω στο τέλος τα τελικά environment.yml και environment-jupyter-notebook.yml και να ανανεώσω το όνομα του virtual environment στην αναφορά και τις κύριες βιβλιοθήκες
 2. Να ψάξω για το regression problem τη σωστή δομή του δικτύου
-3. Να αλλάξω το cosine similarity (ίσως) σε καμία νόρμα
+-- 3. Να αλλάξω το cosine similarity (ίσως) σε καμία νόρμα
+4. Να συμπληρώσω ξανά τα αποτελέσματα του clustering ώστε να μην είναι normalized
