@@ -11,31 +11,34 @@ from sklearn.preprocessing import MinMaxScaler
 
 df = pd.read_csv('data.csv')
 
-greece_df = df.loc[df['Entity'] == 'Greece', ['Date', 'Cases', 'Daily tests']].copy()
+greece_df = df.loc[df['Entity'] == 'Greece', ['Date', 'Cases', 'Deaths', 'Daily tests']].copy()
+
 greece_df = greece_df.reset_index(drop=True)
 greece_df = greece_df.drop(greece_df.index[range(0,60)])
 greece_df = greece_df.reset_index(drop=True)
 
 greece_df['Positive Ratio'] = (greece_df['Cases'].diff() / greece_df['Daily tests']) * 100
-greece_df.iloc[304,3] = float("NaN") #Outlier
+greece_df['Death Ratio'] = (greece_df['Deaths'] / greece_df['Cases']) * 100
+greece_df["Tested Ratio"] = (greece_df['Daily tests'] / 10760421.0) * 100
+greece_df.iloc[304,4] = float("NaN") #Outlier
 greece_df = greece_df.apply(lambda x: x.fillna(method='ffill'))
 greece_df = greece_df.apply(lambda x: x.fillna(method='bfill'))
 greece_df.drop_duplicates(inplace=True)
 #greece_df = greece_df.fillna(0)
-train_data = greece_df.iloc[:,3:4].values
+#train_data = greece_df.iloc[:,3:4].values
+
+input_greece_df = greece_df[['Cases','Deaths','Daily tests','Death Ratio','Tested Ratio']]
+output_greece_df = greece_df.iloc[:,4:5]
 
 # create a MinMax scaler object for all columns
-scaler = MinMaxScaler(feature_range=(0,1))
+input_scaler = MinMaxScaler(feature_range=(0,1))
+output_scaler = MinMaxScaler(feature_range=(0,1))
 
 # select all columns to normalize
-#columns_to_normalize = ['Daily tests','Cases','Deaths','Positive Ratio','Death Ratio',"Tested ratio"]
 
 # fit and transform all columns with the scaler object
-train_data = scaler.fit_transform(train_data)
-#print(greece_df.head(20).to_string())
-
-#input_greece_df = greece_df.copy()
-#output_greece_df = input_greece_df.pop("Positive Ratio")
+input_greece_df[['Cases','Deaths','Death Ratio','Tested Ratio']] = input_scaler.fit_transform(input_greece_df[['Cases','Deaths','Death Ratio','Tested Ratio']])
+output_greece_df = output_scaler.fit_transform(output_greece_df)
 
 #pd.options.display.max_columns = 500 #Changes the number of columns diplayed (default is 20)
 #pd.options.display.max_rows = 500 #Changes the number of rows diplayed (default is 60)
@@ -49,18 +52,18 @@ x_test = []
 y_test = []
 
 for i in range(6, greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0]):
-   x_train.append(train_data[i-6:i,0]) 
-   y_train.append(train_data[i+3,0])
+   x_train.append(input_greece_df[i-6:i]) 
+   y_train.append(output_greece_df[i+3])
     
-for i in range(greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0], train_data.size - 3):
-   x_test.append(train_data[i-6:i,0]) 
-   y_test.append(train_data[i+3,0])
+for i in range(greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0], output_greece_df.size - 3):
+   x_test.append(input_greece_df[i-6:i]) 
+   y_test.append(output_greece_df[i+3])
 
 x_train,y_train = np.array(x_train),np.array(y_train)
-x_train = np.reshape(x_train,(x_train.shape[0],x_train.shape[1],1))
+#x_train = np.reshape(x_train,(x_train.shape[0],x_train.shape[1],1))
 
 x_test,y_test = np.array(x_test),np.array(y_test)
-x_test = np.reshape(x_test,(x_test.shape[0],x_test.shape[1],1))
+#x_test = np.reshape(x_test,(x_test.shape[0],x_test.shape[1],1))
 
 # +
 from keras.layers import Dense,LSTM,Dropout
@@ -69,7 +72,7 @@ from keras.layers import Dense,LSTM,Dropout
 
 model = keras.Sequential(
     [
-        layers.LSTM(300, return_sequences=True, input_shape=(x_train.shape[1],1)),
+        layers.LSTM(300, return_sequences=True, input_shape=(x_train.shape[1],x_train.shape[2])),
         layers.Dropout(0.2),
         layers.LSTM(300, return_sequences=True),
         layers.Dropout(0.2),
@@ -115,9 +118,9 @@ plt.show()
 
 # +
 y_pred = model.predict(x_test)
-y_pred = scaler.inverse_transform(y_pred)
+y_pred = output_scaler.inverse_transform(y_pred)
 y_test_plot = np.reshape(y_test,(y_test.size,1))
-y_test_plot = scaler.inverse_transform(y_test_plot)
+y_test_plot = output_scaler.inverse_transform(y_test_plot)
 
 plt.plot(y_test_plot, color = 'blue', label = 'Actual Positive Ratio')
 plt.plot(y_pred, color = 'red', label = 'Predicted Positive Ratio')
@@ -129,11 +132,11 @@ plt.show()
 
 # +
 y_pred_2 = model.predict(x_train)
-y_pred_2 = scaler.inverse_transform(y_pred_2)
+y_pred_2 = output_scaler.inverse_transform(y_pred_2)
 y_pred = np.concatenate((y_pred_2, y_pred))
 y_plot = np.concatenate((y_train, y_test))
 y_plot = np.reshape(y_plot,(y_plot.size,1))
-y_plot = scaler.inverse_transform(y_plot)
+y_plot = output_scaler.inverse_transform(y_plot)
 
 plt.plot(y_plot, color = 'blue', label = 'Actual Positive Ratio')
 plt.plot(y_pred, color = 'red', label = 'Predicted Positive Ratio')
