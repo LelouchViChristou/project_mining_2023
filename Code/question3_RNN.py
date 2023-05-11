@@ -27,7 +27,7 @@ greece_df.drop_duplicates(inplace=True)
 #greece_df = greece_df.fillna(0)
 #train_data = greece_df.iloc[:,3:4].values
 
-input_greece_df = greece_df[['Cases','Deaths','Daily tests','Death Ratio','Tested Ratio']]
+input_greece_df = greece_df[['Cases','Deaths','Daily tests','Positive Ratio','Death Ratio','Tested Ratio']]
 output_greece_df = greece_df.iloc[:,4:5]
 
 # create a MinMax scaler object for all columns
@@ -37,7 +37,7 @@ output_scaler = MinMaxScaler(feature_range=(0,1))
 # select all columns to normalize
 
 # fit and transform all columns with the scaler object
-input_greece_df[['Cases','Deaths','Death Ratio','Tested Ratio']] = input_scaler.fit_transform(input_greece_df[['Cases','Deaths','Death Ratio','Tested Ratio']])
+input_greece_df[['Cases','Deaths','Positive Ratio','Death Ratio','Tested Ratio']] = input_scaler.fit_transform(input_greece_df[['Cases','Deaths','Positive Ratio','Death Ratio','Tested Ratio']])
 output_greece_df = output_scaler.fit_transform(output_greece_df)
 
 #pd.options.display.max_columns = 500 #Changes the number of columns diplayed (default is 20)
