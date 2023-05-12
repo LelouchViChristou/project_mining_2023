@@ -88,17 +88,14 @@ continent_map = {continent_values[i]: i+1 for i in range(len(continent_values))}
 result_data['Continent'] = result_data['Continent'].replace(continent_map)
 result_data.pop('Date')
 
-features=['Continent', 'Latitude', 'Longitude', 'Average temperature per year',
-       'Hospital beds per 1000 people', 'GDP/Capita', 'Population',
-       'Median age','Cases', 'Deaths', 'Positive Ratio',
-       'Death Ratio', 'Tested Ratio'
+features = ['Cases', 'Deaths', 'Positive Ratio', 'Death Ratio', 'Tested Ratio'
         # 'Deaths per Capita'
         ]
 
 result_data[features] = result_data[features].astype(float)
 
 scaler = StandardScaler()
-normalized_data = result_data.copy()
+normalized_data = result_data.loc[:,(features)]
 normalized_data[features] = scaler.fit_transform(result_data[features])
 
 # n_clusters=10
@@ -133,12 +130,12 @@ dendrogram = sch.dendrogram(sch.linkage(normalized_data, method='ward'))
 plt.title('Dendrogram')
 plt.xlabel('Entities')
 plt.ylabel('Euclidean distances')
-plt.axhline(y = 17, color = 'r', linestyle = '-')
+plt.axhline(y = 8.75, color = 'r', linestyle = '-')
 plt.show()
 
-distance_threshold = 7.0
-cluster = AgglomerativeClustering(n_clusters=None, metric='euclidean', linkage='ward', distance_threshold=distance_threshold)
-#cluster = AgglomerativeClustering(n_clusters=3, metric='euclidean', linkage='ward')
+#distance_threshold = 7.0
+#cluster = AgglomerativeClustering(n_clusters=None, metric='euclidean', linkage='ward', distance_threshold=distance_threshold)
+cluster = AgglomerativeClustering(n_clusters=4, metric='euclidean', linkage='ward')
 cluster.fit_predict(normalized_data)
 normalized_data['Cluster'] = cluster.labels_
 result_data['Cluster'] = cluster.labels_
@@ -149,11 +146,11 @@ result_data['Cluster'] = cluster.labels_
 
 # Plot the clusters
 labels = cluster.labels_
-scatter = plt.scatter(normalized_data['Death Ratio'], normalized_data['GDP/Capita'], c=labels)
+scatter = plt.scatter(result_data['Death Ratio'], result_data['GDP/Capita'], c=labels)
 
-plt.title('Clusters')
-plt.xlabel("Death Ratio")
-plt.ylabel("GDP/Capita")
+#plt.title('Clusters')
+#plt.xlabel("Death Ratio")
+#plt.ylabel("GDP/Capita")
 
 handles, labels = scatter.legend_elements()
 legend_labels = [f'Cluster {i}' for i in range(15)]
