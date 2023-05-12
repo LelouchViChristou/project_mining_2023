@@ -36,7 +36,7 @@ greece_df.drop_duplicates(inplace=True)
 greece_df
 
 # +
-x = greece_df[['Cases', 'Deaths', 'Death Ratio', 'Tested Ratio']]
+x = greece_df[['Cases', 'Deaths', 'Positive Ratio', 'Death Ratio', 'Tested Ratio']]
 y = greece_df[['Positive Ratio']]
 x = x.tail(-3)
 y = y.head(-3)
@@ -46,7 +46,7 @@ y = y.reset_index(drop=True)
 # create a MinMax scaler object for all columns
 x_scaler = MinMaxScaler(feature_range=(0,1))
 y_scaler = MinMaxScaler(feature_range=(0,1))
-x[['Cases', 'Deaths','Death Ratio','Tested Ratio']] = x_scaler.fit_transform(x[['Cases', 'Deaths','Death Ratio','Tested Ratio']])
+x[['Cases','Deaths','Positive Ratio','Death Ratio','Tested Ratio']] = x_scaler.fit_transform(x[['Cases','Deaths','Positive Ratio','Death Ratio','Tested Ratio']])
 y[['Positive Ratio']] = y_scaler.fit_transform(y[['Positive Ratio']])
 
 
