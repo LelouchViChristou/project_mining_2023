@@ -33,41 +33,52 @@ greece_df.drop_duplicates(inplace=True)
 #pd.options.display.max_columns = 500 #Changes the number of columns diplayed (default is 20)
 #pd.options.display.max_rows = 500 #Changes the number of rows diplayed (default is 60)
 #pd.options.display.max_colwidth = 500 #Changes the number of characters in a cell so that the contents don't get truncated 
-greece_df
-
-# +
-x = greece_df[['Cases', 'Deaths', 'Positive Ratio', 'Death Ratio', 'Tested Ratio']]
-y = greece_df[['Positive Ratio']]
-x = x.tail(-3)
-y = y.head(-3)
-x = x.reset_index(drop=True)
-y = y.reset_index(drop=True)
+input_greece_df = greece_df[['Cases','Deaths','Daily tests','Positive Ratio','Death Ratio','Tested Ratio']]
+output_greece_df = greece_df.iloc[:,4:5]
 
 # create a MinMax scaler object for all columns
-x_scaler = MinMaxScaler(feature_range=(0,1))
-y_scaler = MinMaxScaler(feature_range=(0,1))
-x[['Cases','Deaths','Positive Ratio','Death Ratio','Tested Ratio']] = x_scaler.fit_transform(x[['Cases','Deaths','Positive Ratio','Death Ratio','Tested Ratio']])
-y[['Positive Ratio']] = y_scaler.fit_transform(y[['Positive Ratio']])
+input_scaler = MinMaxScaler(feature_range=(0,1))
+output_scaler = MinMaxScaler(feature_range=(0,1))
 
+# select all columns to normalize
 
-x_train = x.iloc[:greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0]]
-y_train = y.iloc[:greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0]]
-x_test = x.iloc[greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0]-3:]
-y_test = y.iloc[greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0]-3:]
+# fit and transform all columns with the scaler object
+input_greece_df[['Cases','Deaths','Positive Ratio','Death Ratio','Tested Ratio']] = input_scaler.fit_transform(input_greece_df[['Cases','Deaths','Positive Ratio','Death Ratio','Tested Ratio']])
+output_greece_df = output_scaler.fit_transform(output_greece_df)
+
+# +
+x_train = []
+y_train = []
+x_test = []
+y_test = []
+
+for i in range(6, greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0]):
+   x_train.append(input_greece_df[i-6:i]) 
+   y_train.append(output_greece_df[i+3])
+    
+for i in range(greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0], output_greece_df.size - 3):
+   x_test.append(input_greece_df[i-6:i]) 
+   y_test.append(output_greece_df[i+3])
+
+x_train,y_train = np.array(x_train),np.array(y_train)
+x_train = np.reshape(x_train,(x_train.shape[0],-1))
+
+x_test,y_test = np.array(x_test),np.array(y_test)
+x_test = np.reshape(x_test,(x_test.shape[0],-1))
 
 # +
 # Define the model
 
 regressor = SVR(kernel='rbf')
-regressor.fit(x_train,y_train.values.ravel())
+regressor.fit(x_train,y_train)
 
 # +
 from statsmodels.tools.eval_measures import mse
 y_pred = regressor.predict(x_test)
 y_pred = np.reshape(y_pred,(y_pred.size,1))
-y_pred = y_scaler.inverse_transform(y_pred)
+y_pred = output_scaler.inverse_transform(y_pred)
 
-y_test = y_scaler.inverse_transform(y_test)
+y_test = output_scaler.inverse_transform(y_test)
 
 print(mse(y_pred,y_test))
 
@@ -83,11 +94,11 @@ plt.legend()
 plt.show()
 
 # +
-y_pred = regressor.predict(x)
+y_pred = regressor.predict(np.concatenate((x_train,x_test)))
 y_pred = np.reshape(y_pred,(y_pred.size,1))
-y_pred = y_scaler.inverse_transform(y_pred)
-y_plot = np.reshape(y,(y.size,1))
-y_plot = y_scaler.inverse_transform(y_plot)
+y_pred = output_scaler.inverse_transform(y_pred)
+y_plot = np.reshape(output_greece_df,(output_greece_df.size,1))
+y_plot = output_scaler.inverse_transform(y_plot)
 
 plt.plot(y_plot, color = 'blue', label = 'Actual Positive Ratio')
 plt.plot(y_pred, color = 'red', label = 'Predicted Positive Ratio')
