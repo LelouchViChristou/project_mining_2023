@@ -1,4 +1,4 @@
-name: tf
+name: venv
 channels:
   - nvidia
   - conda-forge
@@ -97,6 +97,7 @@ dependencies:
   - packaging=23.0=pyhd8ed1ab_0
   - pandocfilters=1.5.0=pyhd8ed1ab_0
   - parso=0.8.3=pyhd8ed1ab_0
+  - patsy=0.5.3=py39h06a4308_0
   - pexpect=4.8.0=pyh1a96a4e_2
   - pickleshare=0.7.5=py_1003
   - pillow=9.4.0=py39h6a678d5_0
@@ -133,6 +134,7 @@ dependencies:
   - soupsieve=2.3.2.post1=pyhd8ed1ab_0
   - sqlite=3.41.1=h5eee18b_0
   - stack_data=0.6.2=pyhd8ed1ab_0
+  - statsmodels=0.13.5=py39h7deecbd_1
   - terminado=0.17.1=pyh41d4057_0
   - threadpoolctl=3.1.0=pyh8a188c0_0
   - tinycss2=1.2.1=pyhd8ed1ab_0
@@ -215,4 +217,3 @@ dependencies:
       - werkzeug==2.2.3
       - wrapt==1.14.1
       - wsproto==1.2.0
-prefix: /home/greg/miniconda3/envs/tf

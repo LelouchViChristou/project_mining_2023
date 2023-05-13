@@ -29,32 +29,21 @@ from sklearn.cluster import AgglomerativeClustering
 #df.to_csv(('data.csv'), index=True)
 
 df = pd.read_csv('data.csv')
+# Compute the new cases and add a new column to the DataFrame
+#df['New Deaths'] = grouped_data['Deaths'].di:f()
+
+df['Positive Ratio'] = (df['Cases'].diff() / df['Daily tests']) * 100
+df['Death Ratio'] = (df['Deaths'] / df['Cases']) * 100
+df["Tested Ratio"]=(df['Daily tests'] / df['Population']) * 100
+#df['Deaths per Capita'] = (df['Deaths'] / df['Population'])
 
 #df["Date"] = pd.to_datetime(df["Date"])
 df = df.groupby('Entity', group_keys=False).apply(lambda x: x.fillna(method='ffill'))
 df = df.groupby('Entity', group_keys=False).apply(lambda x: x.fillna(method='bfill'))
 #df = df[df.Cases > 0]
 
-
 df.drop_duplicates(inplace=True)
-
 #df.dropna(inplace=True)
-
-# Group the data by entity
-grouped_data = df.groupby('Entity')
-
-# Compute the new cases and add a new column to the DataFrame
-#df['New Deaths'] = grouped_data['Deaths'].di:f()
-
-df['Positive Ratio'] = (grouped_data['Cases'].diff() / df['Daily tests']) * 100
-
-df['Death Ratio'] = (df['Deaths'] / df['Cases']) * 100
-df['Death Ratio'] = df['Death Ratio'].fillna(0)
-
-df["Tested Ratio"]=(df['Daily tests'] / df['Population']) * 100
-df.fillna(value=0, inplace=True)
-
-#df['Deaths per Capita'] = (df['Deaths'] / df['Population'])
 
 # Group the data by entity
 grouped_data = df.groupby('Entity')
@@ -130,7 +119,8 @@ dendrogram = sch.dendrogram(sch.linkage(normalized_data, method='ward'))
 plt.title('Dendrogram')
 plt.xlabel('Entities')
 plt.ylabel('Euclidean distances')
-plt.axhline(y = 8.75, color = 'r', linestyle = '-')
+plt.axhline(y = 15.25, color = 'r', linestyle = '-')
+plt.axhline(y = 10.75, color = 'r', linestyle = '--')
 plt.show()
 
 #distance_threshold = 7.0
@@ -140,21 +130,24 @@ cluster.fit_predict(normalized_data)
 normalized_data['Cluster'] = cluster.labels_
 result_data['Cluster'] = cluster.labels_
 
+#grouped_df = df.groupby('Entity', group_keys=False)
+#for key, item in grouped_df:
+#    print(grouped_df.get_group(key), "\n\n")
 
 
 # +
 
 # Plot the clusters
-labels = cluster.labels_
-scatter = plt.scatter(result_data['Death Ratio'], result_data['GDP/Capita'], c=labels)
+#labels = cluster.labels_
+#scatter = plt.scatter(result_data['Death Ratio'], result_data['GDP/Capita'], c=labels)
 
 #plt.title('Clusters')
 #plt.xlabel("Death Ratio")
 #plt.ylabel("GDP/Capita")
 
-handles, labels = scatter.legend_elements()
-legend_labels = [f'Cluster {i}' for i in range(15)]
-legend = plt.legend(handles, legend_labels, loc='upper right', title='Clusters')
+#handles, labels = scatter.legend_elements()
+#legend_labels = [f'Cluster {i}' for i in range(15)]
+#legend = plt.legend(handles, legend_labels, loc='upper right', title='Clusters')
 
 cluster_groups = result_data.groupby('Cluster')
 cluster_entity_names = cluster_groups.apply(lambda x: ', '.join(x.index))
@@ -182,7 +175,7 @@ cluster_stats = result_data.groupby('Cluster').agg({
 
 # Print cluster statistics
 for cluster_id in range(len(cluster_stats)):
-    print(f"\nCluster {cluster_id+1} statistics:")
+    print(f"\nCluster {cluster_id} statistics:")
     #print(f"Continent: {cluster_stats.loc[cluster_id, ('Continent', '<lambda>')]}")
     print(f"Continent: mean = {cluster_stats.loc[cluster_id, ('Continent', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Continent', 'std')]:.2f}")
     print(f"Latitude: mean = {cluster_stats.loc[cluster_id, ('Latitude', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Latitude', 'std')]:.2f}")
