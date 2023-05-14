@@ -18,20 +18,21 @@ greece_df = greece_df.reset_index(drop=True)
 
 greece_df['Positive Ratio'] = (greece_df['Cases'].diff() / greece_df['Daily tests']) * 100
 greece_df.iloc[304,3] = float("NaN") #Outlier
-greece_df = greece_df.apply(lambda x: x.fillna(method='ffill'))
-greece_df = greece_df.apply(lambda x: x.fillna(method='bfill'))
-greece_df.drop_duplicates(inplace=True)
 #greece_df = greece_df.fillna(0)
-train_data = greece_df.iloc[:,3:4].values
 
-# create a MinMax scaler object for all columns
-scaler = MinMaxScaler(feature_range=(0,1))
 
 # select all columns to normalize
 #columns_to_normalize = ['Daily tests','Cases','Deaths','Positive Ratio','Death Ratio',"Tested ratio"]
 
 # fit and transform all columns with the scaler object
-train_data = scaler.fit_transform(train_data)
+model_data = greece_df.iloc[:,3:4]
+model_data = model_data.apply(lambda x: x.fillna(method='ffill'))
+model_data = model_data.apply(lambda x: x.fillna(method='bfill'))
+model_data.drop_duplicates(inplace=True)
+
+# create a MinMax scaler object for all columns
+scaler = MinMaxScaler(feature_range=(0,1))
+model_data = scaler.fit_transform(model_data)
 #print(greece_df.head(20).to_string())
 
 #input_greece_df = greece_df.copy()
@@ -49,12 +50,12 @@ x_test = []
 y_test = []
 
 for i in range(6, greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0]):
-   x_train.append(train_data[i-6:i,0]) 
-   y_train.append(train_data[i+3,0])
+   x_train.append(model_data[i-6:i,0]) 
+   y_train.append(model_data[i+3,0])
     
-for i in range(greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0], train_data.size - 3):
-   x_test.append(train_data[i-6:i,0]) 
-   y_test.append(train_data[i+3,0])
+for i in range(greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0], model_data.size - 3):
+   x_test.append(model_data[i-6:i,0]) 
+   y_test.append(model_data[i+3,0])
 
 x_train,y_train = np.array(x_train),np.array(y_train)
 x_train = np.reshape(x_train,(x_train.shape[0],x_train.shape[1],1))
@@ -75,7 +76,7 @@ model = keras.Sequential(
         layers.Dropout(0.2),
         layers.LSTM(300, return_sequences=False),
         layers.Dropout(0.2),
-        layers.Dense(1)
+        layers.Dense(1, activation='relu')
     ]
 )
 
@@ -88,27 +89,28 @@ model.compile(
 #callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss')
 
 hist = model.fit(x_train, y_train, epochs = 100, batch_size = 32, validation_data=(x_test, y_test), verbose=2)
+evaluate = model.evaluate(x_test, y_test, batch_size = 32, verbose = 2)
 
 # +
 import matplotlib.pyplot as plt
 plt.plot(hist.history['loss'], color='blue')
 plt.plot(hist.history['val_loss'], color='red')
-plt.title('LSTM (RNN) Model Loss:')
+plt.title('LSTM (RNN) Model MSE Loss:')
 plt.legend(['Train Set MSE Loss', 'Test Set MSE Loss'], loc='best')
-plt.ylabel('MSE Loss')
+plt.ylabel('RNN (LSTM) Model MSE Loss')
 plt.xlabel('Epoch')
 plt.show()
 
 plt.plot(hist.history['mean_absolute_percentage_error'], color='blue')
-plt.title('LSTM (RNN) Model Train Set Similarity:')
+plt.title('RNN (LSTM) Model Train Set MAPE:')
 plt.legend(['Train Set Mean Absolute Percentage Error'], loc='best')
 plt.ylabel('Cosine Similarity')
 plt.xlabel('Epoch')
 plt.show()
 
 plt.plot(hist.history['val_mean_absolute_percentage_error'], color='red')
-plt.title('LSTM (RNN) Model Test Set Similarity:')
-plt.legend(['Test Set Mean Test Percentage Error'], loc='best')
+plt.title('RNN (LSTM) Model Test Set MAPE:')
+plt.legend(['Test Set Mean Absolute Percentage Error'], loc='best')
 plt.ylabel('Cosine Similarity')
 plt.xlabel('Epoch')
 plt.show()
@@ -121,7 +123,7 @@ y_test_plot = scaler.inverse_transform(y_test_plot)
 
 plt.plot(y_test_plot, color = 'blue', label = 'Actual Positive Ratio')
 plt.plot(y_pred, color = 'red', label = 'Predicted Positive Ratio')
-plt.title('Actual vs Predicted Positive Ratio')
+plt.title('RNN (LSTM) Model Actual vs Predicted Comparisson on Test Set')
 plt.xlabel('Days after 01/01/2021')
 plt.ylabel('Positive Ratio')
 plt.legend()
@@ -137,7 +139,7 @@ y_plot = scaler.inverse_transform(y_plot)
 
 plt.plot(y_plot, color = 'blue', label = 'Actual Positive Ratio')
 plt.plot(y_pred, color = 'red', label = 'Predicted Positive Ratio')
-plt.title('Actual vs Predicted Positive Ratio On All Data')
+plt.title('RNN (LSTM) Actual vs Predicted Positive Ratio On All Data')
 plt.xlabel('Days after 01/01/2021')
 plt.ylabel('Positive Ratio')
 plt.legend()
