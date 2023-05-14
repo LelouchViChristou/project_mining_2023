@@ -28,7 +28,7 @@ from sklearn.cluster import AgglomerativeClustering
 # save the updated dataframe as a CSV file
 #df.to_csv(('data.csv'), index=True)
 
-df = pd.read_csv('data.csv')
+df = pd.read_csv('../../data.csv')
 
 #df["Date"] = pd.to_datetime(df["Date"])
 df = df.groupby('Entity', group_keys=False).apply(lambda x: x.fillna(method='ffill'))

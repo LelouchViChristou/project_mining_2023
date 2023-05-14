@@ -5,7 +5,7 @@ from scipy.stats import boxcox, yeojohnson
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.svm import SVR
 
-df = pd.read_csv('data.csv')
+df = pd.read_csv('../../data.csv')
 
 greece_df = df.loc[df['Entity'] == 'Greece', ['Date', 'Cases', 'Deaths', 'Daily tests']].copy()
 greece_df = greece_df.reset_index(drop=True)
@@ -18,7 +18,6 @@ greece_df["Tested Ratio"] = (greece_df['Daily tests'] / 10760421.0) * 100
 greece_df.iloc[304,4] = float("NaN") #Outlier
 greece_df = greece_df.apply(lambda x: x.fillna(method='ffill'))
 greece_df = greece_df.apply(lambda x: x.fillna(method='bfill'))
-greece_df.drop_duplicates(inplace=True)
 #greece_df = greece_df.fillna(0)
 
 # select all columns to normalize

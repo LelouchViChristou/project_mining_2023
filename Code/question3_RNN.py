@@ -9,41 +9,36 @@ import pandas as pd
 from scipy.stats import boxcox, yeojohnson
 from sklearn.preprocessing import MinMaxScaler
 
+# Read the CSV file into a pandas dataframe
 df = pd.read_csv('data.csv')
 
+# Create a pandas dataframe with the data I need for Greece only
 greece_df = df.loc[df['Entity'] == 'Greece', ['Date', 'Cases', 'Daily tests']].copy()
 greece_df = greece_df.reset_index(drop=True)
+
+# Remove initial outlier values (tested better performance this way)
 greece_df = greece_df.drop(greece_df.index[range(0,60)])
 greece_df = greece_df.reset_index(drop=True)
 
+# Compute positive ratio
 greece_df['Positive Ratio'] = (greece_df['Cases'].diff() / greece_df['Daily tests']) * 100
-greece_df.iloc[304,3] = float("NaN") #Outlier
-#greece_df = greece_df.fillna(0)
 
+# Remove another outlier
+greece_df.iloc[304,3] = float("NaN")
 
-# select all columns to normalize
-#columns_to_normalize = ['Daily tests','Cases','Deaths','Positive Ratio','Death Ratio',"Tested ratio"]
-
-# fit and transform all columns with the scaler object
+# Keep only positive ratio
 model_data = greece_df.iloc[:,3:4]
+
+# Forward fill and backward fill to remove NaN values and drop duplicates
 model_data = model_data.apply(lambda x: x.fillna(method='ffill'))
 model_data = model_data.apply(lambda x: x.fillna(method='bfill'))
-model_data.drop_duplicates(inplace=True)
 
-# create a MinMax scaler object for all columns
+# MinMax scale data to range [0,1]
 scaler = MinMaxScaler(feature_range=(0,1))
 model_data = scaler.fit_transform(model_data)
-#print(greece_df.head(20).to_string())
-
-#input_greece_df = greece_df.copy()
-#output_greece_df = input_greece_df.pop("Positive Ratio")
-
-#pd.options.display.max_columns = 500 #Changes the number of columns diplayed (default is 20)
-#pd.options.display.max_rows = 500 #Changes the number of rows diplayed (default is 60)
-#pd.options.display.max_colwidth = 500 #Changes the number of characters in a cell so that the contents don't get truncated 
-#greece_df
 
 # +
+#Create input and output arrays for train and test sets
 x_train = []
 y_train = []
 x_test = []
@@ -57,6 +52,7 @@ for i in range(greece_df.loc[greece_df['Date'] == '2021-01-01'].index[0], model_
    x_test.append(model_data[i-6:i,0]) 
    y_test.append(model_data[i+3,0])
 
+#Reshape arrays into correct shapes
 x_train,y_train = np.array(x_train),np.array(y_train)
 x_train = np.reshape(x_train,(x_train.shape[0],x_train.shape[1],1))
 
@@ -67,7 +63,6 @@ x_test = np.reshape(x_test,(x_test.shape[0],x_test.shape[1],1))
 from keras.layers import Dense,LSTM,Dropout
 
 # Define the model
-
 model = keras.Sequential(
     [
         layers.LSTM(300, return_sequences=True, input_shape=(x_train.shape[1],1)),
@@ -86,16 +81,25 @@ model.compile(
     metrics="mean_absolute_percentage_error"
 )
 
+# Define callback for optional early stopping
 #callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss')
 
+# Train without early stopping
 hist = model.fit(x_train, y_train, epochs = 100, batch_size = 32, validation_data=(x_test, y_test), verbose=2)
+
+# Train with early stopping
+#hist = model.fit(x_train, y_train, epochs = 100, batch_size = 32, callbacks = [callback], validation_data=(x_test, y_test), verbose=2)
+
+# Use model to evaluate on test set
 evaluate = model.evaluate(x_test, y_test, batch_size = 32, verbose = 2)
 
 # +
 import matplotlib.pyplot as plt
+
+# Plot MSE and MAPE values for each epoch
 plt.plot(hist.history['loss'], color='blue')
 plt.plot(hist.history['val_loss'], color='red')
-plt.title('LSTM (RNN) Model MSE Loss:')
+plt.title('RNN (LSTM) Model MSE Loss:')
 plt.legend(['Train Set MSE Loss', 'Test Set MSE Loss'], loc='best')
 plt.ylabel('RNN (LSTM) Model MSE Loss')
 plt.xlabel('Epoch')
@@ -116,6 +120,7 @@ plt.xlabel('Epoch')
 plt.show()
 
 # +
+# Compare Actual vs Predicted for test set
 y_pred = model.predict(x_test)
 y_pred = scaler.inverse_transform(y_pred)
 y_test_plot = np.reshape(y_test,(y_test.size,1))
@@ -130,6 +135,7 @@ plt.legend()
 plt.show()
 
 # +
+# Compare Actual vs Predicted for all data
 y_pred_2 = model.predict(x_train)
 y_pred_2 = scaler.inverse_transform(y_pred_2)
 y_pred = np.concatenate((y_pred_2, y_pred))
@@ -140,7 +146,7 @@ y_plot = scaler.inverse_transform(y_plot)
 plt.plot(y_plot, color = 'blue', label = 'Actual Positive Ratio')
 plt.plot(y_pred, color = 'red', label = 'Predicted Positive Ratio')
 plt.title('RNN (LSTM) Actual vs Predicted Positive Ratio On All Data')
-plt.xlabel('Days after 01/01/2021')
+plt.xlabel('Days after 26/04/2020')
 plt.ylabel('Positive Ratio')
 plt.legend()
 plt.show()

@@ -449,7 +449,7 @@ df = df.groupby('Entity',group_keys=False).apply(lambda x: x.fillna(method='bfil
 
 Έπειτα απομονώνουμε τις τιμές του 'Positive Ratio' στο νέο array 'model\_data'. Ο λόγος που απομονώνουμε μόνο το 'Positive Ratio' είναι επειδή θα χρησιμοποιήσουμε μόνο προηγούμενες τιμές του 'Positive Ratio' για να προβλέψουμε την τιμή τρεις μέρες μετά, με τρόπο που θα εξηγηθεί σε παρακάτω ενότητα. Έχουμε κάνει και δοκιμές να χρησιμοποιήσουμε παραπάνω πεδία δεδομένων για την πρόβλεψη, αλλά η προσέγγιση που θα εξηγήσουμε είχε τα καλύτερα αποτελέσματα. Παρόλα αυτά έχουμε συμπεριλάβει κώδικα για τις άλλες προσεγγίσεις που δοκιμάσαμε στον φάκελο 'Code/Extras - Different Tested Approaches' στο GitHub της εργασίας μας.
 
-Αφού λοιπόν απομονώσουμε τη στήλη του 'Positive Ratio', με σκοπό την εξάλειψη τυχόν κενών στα δεδομένα κάνουμε πάλι forward fill, backward fill και drop\_duplicates(), όπως κάναμε και στο ερώτημα 2 και περνάμε το 'model\_data' από MinMaxScaler αυτή τη φορά με σκοπό να φέρουμε όλες τις τιμές στο εύρος [0,1].
+Αφού λοιπόν απομονώσουμε τη στήλη του 'Positive Ratio', με σκοπό την εξάλειψη τυχόν κενών στα δεδομένα κάνουμε πάλι forward fill και backward fill, όπως κάναμε και στο ερώτημα 2 και περνάμε το 'model\_data' από MinMaxScaler αυτή τη φορά με σκοπό να φέρουμε όλες τις τιμές στο εύρος [0,1].
 
 \subsubsection{Δημιουργία Train Set και Test Set}
 
@@ -501,7 +501,7 @@ df = df.groupby('Entity',group_keys=False).apply(lambda x: x.fillna(method='bfil
 
 Παρακάτω παρουσιάζουμε την τελική τιμή του MSE για τις κανονικές τιμές του dataset σε σχέση με τις τιμές που προβλέψαμε στο test set και τις γραφικές που προέκυψαν από την εκτέλεση του κώδικα:
 
-\textbf{Evaluation MSE\textsubscript{Actual vs Predicted} =} 0.63686696
+\textbf{Evaluation MSE\textsubscript{Actual vs Predicted} =} 1.50846051
 
 \begin{figure}[H]
 	\includegraphics[width=\textwidth]{Figures/Question3/1. SVR Actual vs Predicted Test Set.png}
@@ -517,9 +517,9 @@ df = df.groupby('Entity',group_keys=False).apply(lambda x: x.fillna(method='bfil
 
 Παρακάτω παρουσιάζουμε τις μετρικές σφάλματος και αξιολόγησης (MSE και MAPE) ανά εποχή στο train set και test set, καθώς και τις τελικές τιμές MSE και MAPE στο evaluation με το test set. Επίσης παρουσιάζουμε και τις γραφικές των prediction, όπως κάνουμε και παραπάνω.
 
-\textbf{Evaluation MSE\textsubscript{Actual vs Predicted} =} 0.0035
+\textbf{Evaluation MSE\textsubscript{Actual vs Predicted} =} 0.0039
 
-\textbf{Evaluation MAPE\textsubscript{Actual vs Predicted} =} 19.3121
+\textbf{Evaluation MAPE\textsubscript{Actual vs Predicted} =} 25.4686
 
 \begin{figure}[H]
 	\includegraphics[width=\textwidth]{Figures/Question3/3. RNN Model MSE Loss.png}
@@ -554,8 +554,10 @@ df = df.groupby('Entity',group_keys=False).apply(lambda x: x.fillna(method='bfil
 
 Τέλος στη γραφική παράσταση του MSE ανά εποχή στο test και train set για το παράδειγμα των RNN παρατηρούμε αρχικά ότι ο ρυθμός βελτίωσης της απόδοσης μετά από σχετικά μικρό αριθμό εποχών (20 περίπου) είναι σταθερός. Επειδή όμως δεν υπάρχει σημαντική μείωση του σφάλματος στο train set και ούτε αύξηση σφάλματος στο test set δεν θεωρούμε ότι γίνεται overfitting, στο οποίο συμβάλλει και η χρήση των dropout layers. 
 
-Παρόλα αυτά βέβαια δεν υπάρχει ούτε αύξηση της επίδοσης, οπότε θα μπορούσε σε αυτή τη περίπτωση να είχε σταματήσει το training σε μικρότερο αριθμό εποχών, αλλά επειδή ο ιδανικός αριθμός εποχών παρουσιάζει τυχαιότητα και δεν γίνεται overfitting προτιμήσαμε ένα αυθαίρετα μεγάλο αριθμό εποχών στη περίπτωση αυτή.
+Παρόλα αυτά βέβαια δεν υπάρχει ούτε αύξηση της επίδοσης, οπότε θα μπορούσε σε αυτή τη περίπτωση να είχε σταματήσει το training σε μικρότερο αριθμό εποχών, αλλά επειδή ο ιδανικός αριθμός εποχών παρουσιάζει τυχαιότητα και πολλές φορές το early stopping μπορεί να σταματήσει νωρίς το training, καθώς και δεν γίνεται overfitting προτιμήσαμε ένα αυθαίρετα μεγάλο αριθμό εποχών στη περίπτωση αυτή.
 
 Επίσης παρατηρείται ότι το test set έχει πάντα μικρότερο σφάλμα από το train set, το οποίο συμβαίνει επειδή οι τιμές στο test set έχουν μικρότερο εύρος τιμών από ότι αυτές στο train set και παρουσιάζουν μικρότερες διακυμάνσεις, οπότε είναι "πιο εύκολο" για το μοντέλο να τις προβλέψει.
+
+\textbf{Σημείωση:} Εκτός από τη προσέγγιση χρήσης των δεδομένων του 'Positive Ratio' των 6 τελευταίων ημερών για την πρόβλεψη, όπως εξηγήσαμε και παραπάνω, έχουμε δοκιμάσει και εναλλακτικές μεθόδους, όπως την χρήστη όλων των δεδομένων (όλα τα Series) των 6 τελευταίων ημερών και τη χρήση όλων των δεδομένων για τη τελευταία ημέρα. Παρατηρήσαμε όμως πως η προσέγγιση που εξηγήσαμε παραπάνω παρουσίαζε τα καλύτερα αποτελέσματα οπότε δεν εξηγήσαμε τις άλλες, παρόλα αυτά παρέχονται και αυτά σε μορφή κώδικα στο GitHub στο φάκελο 'Code/Extras - Different Tested Approaches'.
 
 \end{document}

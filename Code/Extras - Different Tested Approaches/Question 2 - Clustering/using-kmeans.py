@@ -22,20 +22,28 @@ from sklearn.preprocessing import StandardScaler
 import scipy.cluster.hierarchy as sch
 from sklearn.cluster import AgglomerativeClustering
 
-# Read the CSV file into a pandas dataframe
-df = pd.read_csv('data.csv')
+# read the CSV file into a pandas dataframe
+#df = pd.read_csv('data.csv')
 
-# Compute the new columns
+# save the updated dataframe as a CSV file
+#df.to_csv(('data.csv'), index=True)
+
+df = pd.read_csv('../../data.csv')
+# Compute the new cases and add a new column to the DataFrame
+#df['New Deaths'] = grouped_data['Deaths'].di:f()
+
 df['Positive Ratio'] = (df['Cases'].diff() / df['Daily tests']) * 100
 df['Death Ratio'] = (df['Deaths'] / df['Cases']) * 100
 df["Tested Ratio"]=(df['Daily tests'] / df['Population']) * 100
+#df['Deaths per Capita'] = (df['Deaths'] / df['Population'])
 
-# Forward fill and backward fill to remomve NaN
+#df["Date"] = pd.to_datetime(df["Date"])
 df = df.groupby('Entity', group_keys=False).apply(lambda x: x.fillna(method='ffill'))
 df = df.groupby('Entity', group_keys=False).apply(lambda x: x.fillna(method='bfill'))
+#df = df[df.Cases > 0]
 
-# Drop potential duplicates
 df.drop_duplicates(inplace=True)
+#df.dropna(inplace=True)
 
 # Group the data by entity
 grouped_data = df.groupby('Entity')
@@ -69,36 +77,82 @@ continent_map = {continent_values[i]: i+1 for i in range(len(continent_values))}
 result_data['Continent'] = result_data['Continent'].replace(continent_map)
 result_data.pop('Date')
 
-features = ['Cases', 'Deaths', 'Positive Ratio', 'Death Ratio', 'Tested Ratio']
+features = ['Cases', 'Deaths', 'Positive Ratio', 'Death Ratio', 'Tested Ratio'
+        # 'Deaths per Capita'
+        ]
 
 result_data[features] = result_data[features].astype(float)
 
-# Normalize data
 scaler = StandardScaler()
 normalized_data = result_data.loc[:,(features)]
 normalized_data[features] = scaler.fit_transform(result_data[features])
 
-# Create a dendrogram to help determine the optimal number of clusters
-dendrogram = sch.dendrogram(sch.linkage(normalized_data, method='ward'))
-plt.title('Dendrogram')
-plt.xlabel('Entities')
-plt.ylabel('Euclidean distances')
-plt.axhline(y = 15.25, color = 'r', linestyle = '-')
-plt.axhline(y = 10.75, color = 'r', linestyle = '--')
-plt.show()
+n_clusters=4
+# # Cluster the data using the best k value
+kmeans = KMeans(n_clusters=n_clusters, random_state=42,n_init="auto")
+kmeans.fit(normalized_data)
+normalized_data['Cluster'] = kmeans.labels_
+result_data['Cluster'] = kmeans.labels_
 
-# Use agglomerative clustering to cluster the data into 4 clusters
-cluster = AgglomerativeClustering(n_clusters=4, metric='euclidean', linkage='ward')
-cluster.fit_predict(normalized_data)
-normalized_data['Cluster'] = cluster.labels_
-result_data['Cluster'] = cluster.labels_
+# # Plot the clusters
+#labels = kmeans.labels_
+#scatter = plt.scatter(normalized_data['Death Ratio'], normalized_data['GDP/Capita'], c=labels)
 
+#plt.title('Clusters')
+#lt.xlabel("Death Ratio")
+#lt.ylabel("GDP/Capita")
 
-# Print clusters
+#andles, labels = scatter.legend_elements()
+#egend_labels = [f'Cluster {i}' for i in range(n_clusters)]
+#egend = plt.legend(handles, legend_labels, loc='upper right', title='Clusters')
+
 cluster_groups = result_data.groupby('Cluster')
 cluster_entity_names = cluster_groups.apply(lambda x: ', '.join(x.index))
 cluster_entity_names_df = pd.DataFrame({'Entity Names': cluster_entity_names})
 print(cluster_entity_names_df.to_string())
+
+
+
+# Create a dendrogram to help determine the optimal number of clusters
+#dendrogram = sch.dendrogram(sch.linkage(normalized_data, method='average'))
+#dendrogram = sch.dendrogram(sch.linkage(normalized_data, method='ward'))
+#plt.title('Dendrogram')
+#plt.xlabel('Entities')
+#plt.ylabel('Euclidean distances')
+#plt.axhline(y = 15.25, color = 'r', linestyle = '-')
+#plt.axhline(y = 10.75, color = 'r', linestyle = '--')
+#plt.show()
+
+#distance_threshold = 7.0
+#cluster = AgglomerativeClustering(n_clusters=None, metric='euclidean', linkage='ward', distance_threshold=distance_threshold)
+#cluster = AgglomerativeClustering(n_clusters=4, metric='euclidean', linkage='ward')
+#cluster.fit_predict(normalized_data)
+#normalized_data['Cluster'] = cluster.labels_
+#result_data['Cluster'] = cluster.labels_
+
+#grouped_df = df.groupby('Entity', group_keys=False)
+#for key, item in grouped_df:
+#    print(grouped_df.get_group(key), "\n\n")
+
+
+# +
+
+# Plot the clusters
+#labels = cluster.labels_
+#scatter = plt.scatter(result_data['Death Ratio'], result_data['GDP/Capita'], c=labels)
+
+#plt.title('Clusters')
+#plt.xlabel("Death Ratio")
+#plt.ylabel("GDP/Capita")
+
+#handles, labels = scatter.legend_elements()
+#legend_labels = [f'Cluster {i}' for i in range(15)]
+#legend = plt.legend(handles, legend_labels, loc='upper right', title='Clusters')
+
+#cluster_groups = result_data.groupby('Cluster')
+#cluster_entity_names = cluster_groups.apply(lambda x: ', '.join(x.index))
+#cluster_entity_names_df = pd.DataFrame({'Entity Names': cluster_entity_names})
+#print(cluster_entity_names_df.to_string())
 
 # Compute cluster statistics
 cluster_stats = result_data.groupby('Cluster').agg({
@@ -116,6 +170,7 @@ cluster_stats = result_data.groupby('Cluster').agg({
     'Positive Ratio': ['mean', 'std'],
     'Death Ratio': ['mean', 'std'],
     'Tested Ratio': ['mean', 'std']
+    #'Deaths per Capita': ['mean', 'std']
 })
 
 # Print cluster statistics
@@ -131,7 +186,8 @@ for cluster_id in range(len(cluster_stats)):
     print(f"Population: mean = {cluster_stats.loc[cluster_id, ('Population', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Population', 'std')]:.2f}")
     print(f"Median age: mean = {cluster_stats.loc[cluster_id, ('Median age', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Median age', 'std')]:.2f}")
     print(f"Cases: mean = {cluster_stats.loc[cluster_id, ('Cases', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Cases', 'std')]:.2f}")
-    print(f"Deaths: mean = {cluster_stats.loc[cluster_id, ('Deaths', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Deaths', 'std')]:.2f}")
+    print(f"Deaths: mean = {cluster_stats.loc[cluster_id, ('Deaths', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Deaths', 'std')]:.2f}")#na kanononikopiithi me to population
     print(f"Positive Ratio: mean = {cluster_stats.loc[cluster_id, ('Positive Ratio', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Positive Ratio','std')]:.2f}")
     print(f"Death Ratio: mean = {cluster_stats.loc[cluster_id, ('Death Ratio', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Death Ratio', 'std')]:.2f}")
     print(f"Tested Ratio: mean = {cluster_stats.loc[cluster_id, ('Tested Ratio', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Tested Ratio', 'std')]:.2f}")
+    #print(f"Deaths per Capita: mean = {cluster_stats.loc[cluster_id, ('Deaths per Capita', 'mean')]:.2f}, std = {cluster_stats.loc[cluster_id, ('Deaths per Capita', 'std')]:.2f}")#na kanononikopiithi me to population
